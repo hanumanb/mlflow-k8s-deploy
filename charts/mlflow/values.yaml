@@ -1,0 +1,19 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/mlflow/mlflow
+  tag: 2.11.0
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 5000
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: mlflow.local
+      paths:
+        - path: /
+          pathType: Prefix
