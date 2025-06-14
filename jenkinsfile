@@ -1,0 +1,57 @@
+pipeline {
+    agent any
+
+    environment {
+        KUBECONFIG = credentials('kubeconfig-jenkins') // Jenkins credential ID
+    }
+
+    stages {
+        stage('Checkout Repo') {
+            steps {
+                git url: 'https://github.com/hanumanb/mlflow-k8s-deploy.git', branch: 'main'
+            }
+        }
+
+        stage('Deploy PostgreSQL') {
+            steps {
+                sh 'kubectl apply -f manifests/postgres/'
+            }
+        }
+
+        stage('Deploy MinIO (Artifact Store)') {
+            steps {
+                sh 'kubectl apply -f manifests/minio/'
+            }
+        }
+
+        stage('Create Secrets') {
+            steps {
+                sh '''
+                kubectl apply -f manifests/secrets/mlflow-db-secret.yaml
+                kubectl apply -f manifests/secrets/minio-secret.yaml
+                '''
+            }
+        }
+
+        stage('Deploy MLflow') {
+            steps {
+                sh 'kubectl apply -f manifests/mlflow/'
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                sh 'kubectl get pods -n mlflow -o wide'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'MLflow deployed successfully!'
+        }
+        failure {
+            echo ' Deployment failed. Check logs and cluster status.'
+        }
+    }
+}
